@@ -89,7 +89,7 @@ func getNearbyUsers(data []byte) (error, []string, []interface{}, string) {
 	}
 
 	userid := event.Data.From
-	eventType = event.Data.Type
+	eventType = "event_" + event.Data.Type
 	log.Println("userid: ", userid)
 
 	user := &models.Account{}
