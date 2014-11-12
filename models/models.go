@@ -112,8 +112,6 @@ func withCollection(collection string, safe *mgo.Safe, s func(*mgo.Collection) e
 func SaveToDB(collection string, o interface{}, safe bool) error {
 	var err error
 	insert := func(c *mgo.Collection) error {
-		log.Println("c:", c)
-		log.Println("o :", o)
 		return c.Insert(o)
 	}
 
