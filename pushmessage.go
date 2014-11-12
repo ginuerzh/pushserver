@@ -13,11 +13,12 @@ import (
 )
 
 var (
-	redisServer string
-	fromString  string
-	toString    string
-	meterToLoc  float64
-	eventColl   string
+	redisServer   string
+	fromString    string
+	toString      string
+	eventCountStr string
+	meterToLoc    float64
+	eventColl     string
 )
 
 type MsgBody struct {
@@ -52,6 +53,7 @@ func init() {
 
 func main() {
 	eventColl = "events"
+	eventCountStr = "sports:user:info:"
 	c := float64(10000) / float64(111319)
 	meterToLoc = c
 	log.Println("fromString is :", fromString)
@@ -72,20 +74,22 @@ func main() {
 			return err
 		},
 	}
-	t := transfer.NewTransfer(p, fromString, toString, getNearbyUsers, saveDataToDB)
+	t := transfer.NewTransfer(p, fromString, toString, eventCountStr, getNearbyUsers, saveDataToDB)
 	t.Push()
 	log.Println("over")
 }
 
-func getNearbyUsers(data []byte) (error, []string, []interface{}) {
+func getNearbyUsers(data []byte) (error, []string, []interface{}, string) {
 	var event Event
+	eventType := ""
 	err := json.Unmarshal(data, &event)
 	if err != nil {
 		log.Println(err)
-		return err, make([]string, 0), make([]interface{}, 0)
+		return err, make([]string, 0), make([]interface{}, 0), eventType
 	}
 
 	userid := event.Data.From
+	eventType = event.Data.Type
 	log.Println("userid: ", userid)
 
 	user := &models.Account{}
@@ -94,7 +98,7 @@ func getNearbyUsers(data []byte) (error, []string, []interface{}) {
 			err = errors.NewError(errors.NotExistsError, "user '"+userid+"' not exists")
 		}
 		log.Println("not find")
-		return err, make([]string, 0), make([]interface{}, 0)
+		return err, make([]string, 0), make([]interface{}, 0), eventType
 	} else {
 		query := bson.M{
 			"loc": bson.M{
@@ -108,7 +112,7 @@ func getNearbyUsers(data []byte) (error, []string, []interface{}) {
 		_, u, e := models.GetListByQuery(query)
 		if e != nil {
 			log.Println("e :", e)
-			return e, make([]string, 0), make([]interface{}, 0)
+			return e, make([]string, 0), make([]interface{}, 0), eventType
 		}
 		usercount := len(u)
 		log.Println("usercount is :", usercount)
@@ -129,7 +133,7 @@ func getNearbyUsers(data []byte) (error, []string, []interface{}) {
 			events[i].Data.To = v.Id
 			es[i] = events[i]
 		}
-		return nil, list, es
+		return nil, list, es, eventType
 	}
 }
 
