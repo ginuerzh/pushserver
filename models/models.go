@@ -10,6 +10,7 @@ import (
 var (
 	databaseName = "sports"
 	accountColl  = "accounts"
+	ruleColl     = "rules"
 	MongoAddr    = "localhost:27017"
 	mgoSession   *mgo.Session
 )
@@ -22,6 +23,12 @@ type Location struct {
 type Account struct {
 	Id  string    `bson:"_id,omitempty" json:"-"`
 	Loc *Location `bson:",omitempty" json:"-"`
+}
+
+type rules struct {
+	Rule_id int      `bson:"rule_id" json:"rule_id"`
+	Userid  []string `bson:"users" json:"users"`
+	Message string   `bson:"message" json:"message"`
 }
 
 func (this *Account) findOne(query interface{}) (bool, error) {
@@ -45,6 +52,19 @@ func GetListByQuery(query bson.M) (total int, users []Account, err error) {
 	if err := search(accountColl, query, nil, 0, 0, nil, nil, &users); err != nil {
 		return 0, nil, errors.NewError(errors.DbError, err.Error())
 	}
+	return
+}
+
+func GetPushDataByQuery(query bson.M) (userids []string, content string, err error) {
+	var rs []rules
+	if err := search(ruleColl, query, nil, 0, 0, nil, nil, &rs); err != nil {
+		return nil, "", errors.NewError(errors.DbError, err.Error())
+	}
+	log.Println("rs.len:", len(rs))
+	r := rs[0]
+	userids = r.Userid
+	content = r.Message
+
 	return
 }
 

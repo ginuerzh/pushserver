@@ -9,6 +9,7 @@ import (
 	"github.com/shevilangle/transfer"
 	"labix.org/v2/mgo/bson"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -74,9 +75,63 @@ func main() {
 			return err
 		},
 	}
-	t := transfer.NewTransfer(p, fromString, toString, eventCountStr, getNearbyUsers, saveDataToDB)
+	//t := transfer.NewTransfer(p, fromString, toString, eventCountStr, getNearbyUsers, saveDataToDB)
+	t := transfer.NewTransfer(p, fromString, toString, eventCountStr, getUsersAndContent, saveDataToDB)
 	t.Push()
 	log.Println("over")
+}
+
+func getUsersAndContent(data []byte) (error, []string, []interface{}, string) {
+	var event Event
+	eventType := ""
+	err := json.Unmarshal(data, &event)
+	if err != nil {
+		log.Println(err)
+		return err, make([]string, 0), make([]interface{}, 0), eventType
+	}
+
+	userid := event.Data.From
+	eventType = "event_" + event.Data.Type
+	log.Println("userid: ", userid)
+
+	rule_id := 0
+	for _, r := range event.Data.Body {
+		if r.Type == "rule" {
+			rule_id, _ = strconv.Atoi(r.Content)
+			break
+		}
+	}
+	log.Println("rule_id: ", rule_id)
+	query := bson.M{
+		"rule_id": rule_id,
+	}
+
+	u, content, e := models.GetPushDataByQuery(query)
+	if e != nil {
+		log.Println("e :", e)
+		return e, make([]string, 0), make([]interface{}, 0), eventType
+	}
+	usercount := len(u)
+	log.Println("usercount is :", usercount, "content is :", content)
+
+	list := make([]string, usercount)
+	for i, v := range u {
+		list[i] = v
+	}
+
+	events := make([]Event, usercount)
+	es := make([]interface{}, usercount)
+	for i, v := range u {
+		events[i].Id = bson.NewObjectId()
+		events[i].Type = event.Type
+		events[i].Time = event.Time
+		events[i].Data = event.Data
+		//			log.Println("events[i].Data.from:", events[i].Data.From)
+		events[i].Data.To = v
+		//events[i].Data.Body = content
+		es[i] = events[i]
+	}
+	return nil, list, es, eventType
 }
 
 func getNearbyUsers(data []byte) (error, []string, []interface{}, string) {
