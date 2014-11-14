@@ -61,6 +61,9 @@ func GetPushDataByQuery(query bson.M) (userids []string, content string, err err
 		return nil, "", errors.NewError(errors.DbError, err.Error())
 	}
 	log.Println("rs.len:", len(rs))
+	if len(rs) == 0 {
+		return nil, "", errors.NewError(errors.DbError, err.Error())
+	}
 	r := rs[0]
 	userids = r.Userid
 	content = r.Message
