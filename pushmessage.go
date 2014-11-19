@@ -10,6 +10,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,10 @@ var (
 	meterToLoc    float64
 	eventColl     string
 )
+
+type publishData struct {
+	RuleID int `json:"ruleid"`
+}
 
 type MsgBody struct {
 	Type    string `json:"type"`
@@ -45,7 +50,8 @@ type Event struct {
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	flag.StringVar(&fromString, "f", "sports:pubsub:notice", "listen channel")
+	//flag.StringVar(&fromString, "f", "sports:pubsub:notice", "listen channel")
+	flag.StringVar(&fromString, "f", "rulecontroller:notice", "listen channel")
 	flag.StringVar(&toString, "t", "sports:pubsub:user:", "prefix of receiver channel")
 	flag.StringVar(&redisServer, "r", "172.24.222.54:6379", "redis server")
 	flag.StringVar(&models.MongoAddr, "m", "localhost:27017", "mongodb server")
@@ -106,11 +112,19 @@ func getUsersAndContent(data []byte) (error, []string, []interface{}, string) {
 		"rule_id": rule_id,
 	}
 
-	u, content, e := models.GetPushDataByQuery(query)
+	content, e := models.GetPushContentByQuery(query)
 	if e != nil {
 		log.Println("e :", e)
 		return e, make([]string, 0), make([]interface{}, 0), eventType
 	}
+
+	rsting := ""
+	for _, s := range event.Data.Body {
+		if s.Type == "receiver" {
+			rsting = s.Content
+		}
+	}
+	u := strings.Split(rsting, "  ")
 	usercount := len(u)
 	log.Println("usercount is :", usercount, "content is :", content)
 

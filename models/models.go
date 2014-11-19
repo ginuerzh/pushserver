@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/ginuerzh/sports/errors"
+	"github.com/shevilangle/pushserver/errors"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"log"
@@ -55,17 +55,16 @@ func GetListByQuery(query bson.M) (total int, users []Account, err error) {
 	return
 }
 
-func GetPushDataByQuery(query bson.M) (userids []string, content string, err error) {
+func GetPushContentByQuery(query bson.M) (content string, err error) {
 	var rs []rules
 	if err := search(ruleColl, query, nil, 0, 0, nil, nil, &rs); err != nil {
-		return nil, "", errors.NewError(errors.DbError, err.Error())
+		return "", errors.NewError(errors.DbError, err.Error())
 	}
 	log.Println("rs.len:", len(rs))
 	if len(rs) == 0 {
-		return nil, "", errors.NewError(errors.DbError, err.Error())
+		return "", errors.NewError(errors.DbError, err.Error())
 	}
 	r := rs[0]
-	userids = r.Userid
 	content = r.Message
 
 	return
