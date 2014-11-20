@@ -133,16 +133,35 @@ func getUsersAndContent(data []byte) (error, []string, []interface{}, string) {
 		list[i] = v
 	}
 
+	bodyLen := 0
+	for _, m1 := range event.Data.Body {
+		if m1.Type != "receiver" {
+			bodyLen++
+		}
+	}
+
+	newbody := make([]MsgBody, bodyLen)
+	j := 0
+	for _, m2 := range event.Data.Body {
+		if m2.Type != "receiver" {
+			newbody[j] = m2
+		}
+		j++
+	}
+
 	events := make([]Event, usercount)
 	es := make([]interface{}, usercount)
 	for i, v := range u {
 		events[i].Id = bson.NewObjectId()
 		events[i].Type = event.Type
 		events[i].Time = event.Time
-		events[i].Data = event.Data
+		events[i].Data.Type = event.Data.Type
+		events[i].Data.From = event.Data.From
+		events[i].Data.To = event.Data.To
+		events[i].Data.Id = event.Data.Id
 		//			log.Println("events[i].Data.from:", events[i].Data.From)
 		events[i].Data.To = v
-		//events[i].Data.Body = content
+		events[i].Data.Body = newbody
 		es[i] = events[i]
 	}
 	return nil, list, es, eventType
